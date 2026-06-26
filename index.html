@@ -23,7 +23,35 @@
 </head>
 <body onload="main()">
     <h2>WebGL Dog - Graphics Project</h2>
-    <canvas id="glcanvas" width="800" height="600"></canvas>
+    
+    <div style="display: flex; justify-content: center; align-items: flex-start; gap: 20px; width: 100%; margin-top: 20px;">
+        
+        <canvas id="glcanvas" width="800" height="600" style="border: 2px solid white;"></canvas>
+
+        <div id="ui-controls" style="background: #e0e0e0; color: #000; padding: 20px; border-radius: 8px; font-family: sans-serif; min-width: 250px;">
+            <h3>Camera Controls</h3>
+            
+            <label for="viewAngle">View Angle (degrees):</label><br>
+            <input type="text" id="viewAngle" value="60" style="margin-bottom: 15px;"><br>
+
+            <label for="camOrthoDistance">Camera Distance:</label><br>
+            <input type="text" id="camOrthoDistance" value="9" style="margin-bottom: 15px;"><br>
+
+            <fieldset style="margin-bottom: 15px;">
+                <legend>Camera Position (x, y, z):</legend>
+                <input type="radio" name="camPos" id="LFT" value="LFT"> <label for="LFT">Left-Front-Top</label><br>
+                <input type="radio" name="camPos" id="LFB" value="LFB"> <label for="LFB">Left-Front-Bottom</label><br>
+                <input type="radio" name="camPos" id="LBT" value="LBT"> <label for="LBT">Left-Back-Top</label><br>
+                <input type="radio" name="camPos" id="LBB" value="LBB"> <label for="LBB">Left-Back-Bottom</label><br>
+                <input type="radio" name="camPos" id="RFT" value="RFT" checked> <label for="RFT">Right-Front-Top</label><br>
+                <input type="radio" name="camPos" id="RFB" value="RFB"> <label for="RFB">Right-Front-Bottom</label><br>
+                <input type="radio" name="camPos" id="RBT" value="RBT"> <label for="RBT">Right-Back-Top</label><br>
+                <input type="radio" name="camPos" id="RBB" value="RBB"> <label for="RBB">Right-Back-Bottom</label><br>
+            </fieldset>
+
+            <button id="redrawBtn" style="padding: 10px 20px; font-weight: bold; cursor: pointer;">Redraw Scene</button>
+        </div>
+    </div>
 
     <script src="libs/webgl-debug.js"></script>
     <script src="libs/gl-matrix-min.js"></script>

@@ -33,6 +33,8 @@ function main() {
     initShaders();
     initBuffers();
     drawScene();
+
+    document.getElementById("redrawBtn").addEventListener("click", drawScene);
 }
 
 // --- 1. DATA SETUP ---
@@ -163,30 +165,46 @@ function drawScene() {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // --- ΒΗΜΑ 2: ΠΡΟΟΠΤΙΚΗ (Perspective) ---
-    // Γωνία θέασης 60 μοιρών (σε ακτίνια), αναλογία 1, κοντινό 0.0001, μακρινό 9000
-    mat4.perspective(pMatrix, 60 * Math.PI / 180, 1.0, 0.0001, 9000.0);
+    // Read values from the text boxes
+    let viewAngle = parseFloat(document.getElementById("viewAngle").value);
+    let d = parseFloat(document.getElementById("camOrthoDistance").value);
 
-    // --- ΒΗΜΑ 2: ΘΕΣΗ ΚΑΜΕΡΑΣ (LookAt) ---
-    // Κάμερα στο (9,9,9), κοιτάζει το (0,0,0), με τον άξονα z (0,0,1) προς τα επάνω
+    // Fallback in case the user types something invalid
+    if (isNaN(viewAngle)) viewAngle = 60;
+    if (isNaN(d)) d = 9;
+
+    // Determine exact camera position based on the radio buttons
+    let camPos = [d, d, d]; // Default fallback
+    if (document.getElementById("LFT").checked) camPos = [-d, d, d];
+    if (document.getElementById("LFB").checked) camPos = [-d, d, -d];
+    if (document.getElementById("LBT").checked) camPos = [-d, -d, d];
+    if (document.getElementById("LBB").checked) camPos = [-d, -d, -d];
+    if (document.getElementById("RFT").checked) camPos = [d, d, d];
+    if (document.getElementById("RFB").checked) camPos = [d, d, -d];
+    if (document.getElementById("RBT").checked) camPos = [d, -d, d];
+    if (document.getElementById("RBB").checked) camPos = [d, -d, -d];
+
+    // --- PHASE 4: DYNAMIC PERSPECTIVE ---
+    // Use a multiple of camOrthoDistance (e.g., d * 10) for the far clipping plane
+    let nearClip = 0.0001;
+    let farClip = d * 10; 
+    mat4.perspective(pMatrix, viewAngle * Math.PI / 180, gl.canvas.width / gl.canvas.height, nearClip, farClip);
+
+    // --- PHASE 4: DYNAMIC CAMERA POSITION ---
     mat4.identity(mvMatrix);
-    mat4.lookAt(mvMatrix, [9, 9, 9], [0, 0, 0], [0, 0, 1]);
+    mat4.lookAt(mvMatrix, camPos, [0, 0, 0], [0, 0, 1]);
 
-    // Σύνδεση των θέσεων των κορυφών
+    // Bind Buffers and send to GPU
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    // Σύνδεση των χρωμάτων
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, cubeVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-    // Σύνδεση των δεικτών (indices)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
 
-    // Αποστολή των πινάκων στην GPU (στους shaders)
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 
-    // Σχεδίαση του κύβου!
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
