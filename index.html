@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebGL Dog Project</title>
+    <style>
+        body {
+            margin: 0;
+            /* Changed to dark blue to match the WebGL canvas */
+            background-color: #000040; 
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: sans-serif;
+        }
+        canvas {
+            /* Removed the white border so it blends seamlessly */
+            border: none; 
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body onload="main()">
+    <h2>WebGL Dog - Graphics Project</h2>
+    <canvas id="glcanvas" width="800" height="600"></canvas>
+
+    <script src="libs/webgl-debug.js"></script>
+    <script src="libs/gl-matrix-min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
