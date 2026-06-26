@@ -105,6 +105,7 @@ function initShaders() {
         }
     `;
 
+
     const vertexShader = compileShader(gl.VERTEX_SHADER, vsSource);
     const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fsSource);
 
@@ -162,31 +163,30 @@ function drawScene() {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Set a basic perspective so the cube doesn't look flat
-    mat4.perspective(pMatrix, 45 * Math.PI / 180, gl.canvas.width / gl.canvas.height, 0.1, 100.0);
+    // --- ΒΗΜΑ 2: ΠΡΟΟΠΤΙΚΗ (Perspective) ---
+    // Γωνία θέασης 60 μοιρών (σε ακτίνια), αναλογία 1, κοντινό 0.0001, μακρινό 9000
+    mat4.perspective(pMatrix, 60 * Math.PI / 180, 1.0, 0.0001, 9000.0);
 
-    // Move the camera back 3 units so we aren't trapped inside the cube
+    // --- ΒΗΜΑ 2: ΘΕΣΗ ΚΑΜΕΡΑΣ (LookAt) ---
+    // Κάμερα στο (9,9,9), κοιτάζει το (0,0,0), με τον άξονα z (0,0,1) προς τα επάνω
     mat4.identity(mvMatrix);
-    mat4.translate(mvMatrix, mvMatrix, [0.0, 0.0, -3.0]);
+    mat4.lookAt(mvMatrix, [9, 9, 9], [0, 0, 0], [0, 0, 1]);
 
-    // **The trick to remove the "2D Square" illusion**
-    // We rotate the cube slightly on the X and Y axes so you can see 3 sides at once!
-    mat4.rotate(mvMatrix, mvMatrix, 0.5, [1, 0, 0]);
-    mat4.rotate(mvMatrix, mvMatrix, 0.6, [0, 1, 0]);
-
-    // Bind all the buffers to the GPU
+    // Σύνδεση των θέσεων των κορυφών
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
+    // Σύνδεση των χρωμάτων
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, cubeVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
+    // Σύνδεση των δεικτών (indices)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
 
-    // Send the matrices
+    // Αποστολή των πινάκων στην GPU (στους shaders)
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
 
-    // Draw the triangles!
+    // Σχεδίαση του κύβου!
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
