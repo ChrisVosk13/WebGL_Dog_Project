@@ -2,10 +2,9 @@ let gl;
 
 let shaderProgram;
 let cubeVertexPositionBuffer;
-let cubeVertexColorBuffer;
 let cubeVertexIndexBuffer;
 
-// Declare matrices
+// Πίνακες για την 3D προβολή και την κάμερα
 let mvMatrix;
 let pMatrix;
 
@@ -21,92 +20,66 @@ function main() {
         return;
     }
 
-    // Safe initialization of the matrix variables
+    // Ασφαλής αρχικοποίηση των πινάκων της glMatrix
     const mat4 = window.mat4 || glMatrix.mat4;
     mvMatrix = mat4.create();
     pMatrix = mat4.create();
 
-    // Dark blue background
+    // Βήμα 1: Σκούρα απόχρωση του μπλε για το φόντο
     gl.clearColor(0.0, 0.0, 0.25, 1.0);
-    gl.enable(gl.DEPTH_TEST); // Ensures the front faces hide the back faces!
+    gl.enable(gl.DEPTH_TEST); // Ενεργοποίηση depth test για σωστή απόκρυψη των πίσω όψεων
 
     initShaders();
     initBuffers();
     drawScene();
 
+    // Βήμα 4: Σύνδεση του Redraw button με τη drawScene
     document.getElementById("redrawBtn").addEventListener("click", drawScene);
 }
 
-// --- 1. DATA SETUP ---
-
-// 24 vertices total (4 vertices per face, 6 faces)
-// Edge length of 1, centered at (0,0,0) -> coordinates range from -0.5 to 0.5
+// --- ΔΕΔΟΜΕΝΑ ΚΥΒΟΥ ΒΑΣΗΣ (Ακμή 1, κέντρο στο 0,0,0) ---
 const cubeVertices = [
-    // Front face
+    // Μπροστινή όψη
     -0.5, -0.5,  0.5,   0.5, -0.5,  0.5,   0.5,  0.5,  0.5,  -0.5,  0.5,  0.5,
-    // Back face
+    // Πίσω όψη
     -0.5, -0.5, -0.5,  -0.5,  0.5, -0.5,   0.5,  0.5, -0.5,   0.5, -0.5, -0.5,
-    // Top face
+    // Πάνω όψη
     -0.5,  0.5, -0.5,  -0.5,  0.5,  0.5,   0.5,  0.5,  0.5,   0.5,  0.5, -0.5,
-    // Bottom face
+    // Κάτω όψη
     -0.5, -0.5, -0.5,   0.5, -0.5, -0.5,   0.5, -0.5,  0.5,  -0.5, -0.5,  0.5,
-    // Right face
+    // Δεξιά όψη
      0.5, -0.5, -0.5,   0.5,  0.5, -0.5,   0.5,  0.5,  0.5,   0.5, -0.5,  0.5,
-    // Left face
+    // Αριστερή όψη
     -0.5, -0.5, -0.5,  -0.5, -0.5,  0.5,  -0.5,  0.5,  0.5,  -0.5,  0.5, -0.5
 ];
 
-// 6 distinct colors for the 6 faces
-const faceColors = [
-    [1.0, 0.0, 0.0, 1.0], // Front: Red
-    [0.0, 1.0, 0.0, 1.0], // Back: Green
-    [0.0, 0.0, 1.0, 1.0], // Top: Blue
-    [1.0, 1.0, 0.0, 1.0], // Bottom: Yellow
-    [1.0, 0.0, 1.0, 1.0], // Right: Purple
-    [0.0, 1.0, 1.0, 1.0]  // Left: Cyan
-];
-
-// Unpack the colors so every single vertex gets assigned its face's color
-let cubeColors = [];
-for (let i = 0; i < faceColors.length; i++) {
-    let color = faceColors[i];
-    for (let j = 0; j < 4; j++) {
-        cubeColors = cubeColors.concat(color);
-    }
-}
-
-// Map the 24 vertices into 12 triangles (2 triangles per face)
 const cubeIndices = [
-    0,  1,  2,      0,  2,  3,    // Front
-    4,  5,  6,      4,  6,  7,    // Back
-    8,  9,  10,     8,  10, 11,   // Top
-    12, 13, 14,     12, 14, 15,   // Bottom
-    16, 17, 18,     16, 18, 19,   // Right
-    20, 21, 22,     20, 22, 23    // Left
+    0,  1,  2,      0,  2,  3,    // Μπροστά
+    4,  5,  6,      4,  6,  7,    // Πίσω
+    8,  9,  10,     8,  10, 11,   // Πάνω
+    12, 13, 14,     12, 14, 15,   // Κάτω
+    16, 17, 18,     16, 18, 19,   // Δεξιά
+    20, 21, 22,     20, 22, 23    // Αριστερά
 ];
 
-// --- 2. SHADERS SETUP ---
+// --- SHADERS ---
 function initShaders() {
     const vsSource = `
         attribute vec3 aVertexPosition;
-        attribute vec4 aVertexColor;
         uniform mat4 uMVMatrix;
         uniform mat4 uPMatrix;
-        varying vec4 vColor;
         void main(void) {
             gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-            vColor = aVertexColor; // Pass the color to the fragment shader
         }
     `;
 
     const fsSource = `
         precision mediump float;
-        varying vec4 vColor;
+        uniform vec4 uColor;
         void main(void) {
-            gl_FragColor = vColor; // Apply the solid color
+            gl_FragColor = uColor;
         }
     `;
-
 
     const vertexShader = compileShader(gl.VERTEX_SHADER, vsSource);
     const fragmentShader = compileShader(gl.FRAGMENT_SHADER, fsSource);
@@ -118,16 +91,12 @@ function initShaders() {
 
     gl.useProgram(shaderProgram);
 
-    // Link attributes
     shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
     gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
-    shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
-    gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
-
-    // Link uniforms
     shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    shaderProgram.colorUniform = gl.getUniformLocation(shaderProgram, "uColor"); 
 }
 
 function compileShader(type, source) {
@@ -137,19 +106,13 @@ function compileShader(type, source) {
     return shader;
 }
 
-// --- 3. BUFFERS SETUP ---
+// --- BUFFERS ---
 function initBuffers() {
     cubeVertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeVertices), gl.STATIC_DRAW);
     cubeVertexPositionBuffer.itemSize = 3;
     cubeVertexPositionBuffer.numItems = 24;
-
-    cubeVertexColorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(cubeColors), gl.STATIC_DRAW);
-    cubeVertexColorBuffer.itemSize = 4;
-    cubeVertexColorBuffer.numItems = 24;
 
     cubeVertexIndexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
@@ -158,23 +121,39 @@ function initBuffers() {
     cubeVertexIndexBuffer.numItems = 36;
 }
 
-// --- 4. DRAWING ---
+// --- ΣΥΝΑΡΤΗΣΗ ΣΧΕΔΙΑΣΗΣ ΜΕΛΟΥΣ ---
+// Παίρνει τη μετατόπιση, την κλιμάκωση και το χρώμα και σχεδιάζει ένα τμήμα του σκύλου
+function drawComponent(translation, scale, color) {
+    const mat4 = window.mat4 || glMatrix.mat4;
+    
+    let localMV = mat4.create();
+    mat4.copy(localMV, mvMatrix); // Αντιγραφή του βασικού πίνακα της κάμερας
+    
+    // Εφαρμογή μετασχηματισμών
+    mat4.translate(localMV, localMV, translation);
+    mat4.scale(localMV, localMV, scale); 
+    
+    // Αποστολή στους Shaders
+    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, localMV);
+    gl.uniform4fv(shaderProgram.colorUniform, color);
+    
+    // Σχεδίαση του συγκεκριμένου κύβου
+    gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+}
+
+// --- ΚΥΡΙΑ ΣΧΕΔΙΑΣΗ ΣΚΗΝΗΣ (ΒΗΜΑ 5) ---
 function drawScene() {
     const mat4 = window.mat4 || glMatrix.mat4;
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Read values from the text boxes
-    let viewAngle = parseFloat(document.getElementById("viewAngle").value);
-    let d = parseFloat(document.getElementById("camOrthoDistance").value);
+    // Ανάγνωση τιμών από το UI
+    let viewAngle = parseFloat(document.getElementById("viewAngle").value) || 60;
+    let d = parseFloat(document.getElementById("camOrthoDistance").value) || 9;
 
-    // Fallback in case the user types something invalid
-    if (isNaN(viewAngle)) viewAngle = 60;
-    if (isNaN(d)) d = 9;
-
-    // Determine exact camera position based on the radio buttons
-    let camPos = [d, d, d]; // Default fallback
+    // Υπολογισμός θέσης κάμερας βάσει των Radio Buttons (Βήμα 3 & 4)
+    let camPos = [d, d, d];
     if (document.getElementById("LFT").checked) camPos = [-d, d, d];
     if (document.getElementById("LFB").checked) camPos = [-d, d, -d];
     if (document.getElementById("LBT").checked) camPos = [-d, -d, d];
@@ -184,27 +163,56 @@ function drawScene() {
     if (document.getElementById("RBT").checked) camPos = [d, -d, d];
     if (document.getElementById("RBB").checked) camPos = [d, -d, -d];
 
-    // --- PHASE 4: DYNAMIC PERSPECTIVE ---
-    // Use a multiple of camOrthoDistance (e.g., d * 10) for the far clipping plane
-    let nearClip = 0.0001;
-    let farClip = d * 10; 
-    mat4.perspective(pMatrix, viewAngle * Math.PI / 180, gl.canvas.width / gl.canvas.height, nearClip, farClip);
+    // Ορισμός Προοπτικής με παραμετρικό μακρινό κατώφλι (d * 15) ώστε να φαίνεται όλη η σκηνή
+    mat4.perspective(pMatrix, viewAngle * Math.PI / 180, gl.canvas.width / gl.canvas.height, 0.0001, d * 15);
+    gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
 
-    // --- PHASE 4: DYNAMIC CAMERA POSITION ---
+    // Αρχικοποίηση κάμερας με lookAt (Κορυφή προς Z+)
     mat4.identity(mvMatrix);
     mat4.lookAt(mvMatrix, camPos, [0, 0, 0], [0, 0, 1]);
 
-    // Bind Buffers and send to GPU
+    // Σύνδεση κοινών buffers γεωμετρίας
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, cubeVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
 
-    gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+    // --- ΠΑΛΕΤΑ ΧΡΩΜΑΤΩΝ (Βήμα 5: Αποχρώσεις του κόκκινου και του κίτρινου) ---
+    const redTorso  = [0.75, 0.15, 0.15, 1.0];
+    const redNeck   = [0.65, 0.12, 0.12, 1.0];
+    const redHead   = [0.85, 0.20, 0.20, 1.0];
+    const yelLimb   = [0.90, 0.75, 0.15, 1.0];
+    const yelPaw    = [0.80, 0.65, 0.10, 1.0];
+    const yelEarTail= [0.95, 0.85, 0.20, 1.0];
 
-    gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    // --- ΣΥΝΑΡΜΟΛΟΓΗΣΗ ΤΟΥ ΣΚΥΛΟΥ ---
+    // Οι συντεταγμένες υπολογίστηκαν ώστε οι πατούσες να πατάνε στο z=0 
+    // και η βάση να εκτείνεται ακριβώς από το (-6, -8, 0) έως το (6, 8, 0)
+
+    // 1. Κορμός (Torso): Πλάτος(X)=8, Μήκος(Y)=14, Ύψος(Z)=6. Ξεκινάει πάνω από τα πόδια (z=6)
+    drawComponent([0, 0, 9], [8, 14, 6], redTorso);
+
+    // 2. Λαιμός (Neck): Πλάτος=2, Μήκος=2, Ύψος=3. Τοποθετημένος μπροστά και πάνω στον κορμό
+    drawComponent([0, 5, 13.5], [2, 2, 3], redNeck);
+
+    // 3. Κεφάλι (Head): Πλάτος=6, Μήκος=8, Ύψος=4. Πάνω στο λαιμό, εκτείνεται προς τα εμπρός
+    drawComponent([0, 4, 17], [6, 8, 4], redHead);
+
+    // 4. Αυτιά (Ears): Πλάτος=2, Μήκος=2, Ύψος=4. Στα πλαϊνά του κεφαλιού
+    drawComponent([-4, 2, 17], [2, 2, 4], yelEarTail); // Αριστερό Αυτί
+    drawComponent([ 4, 2, 17], [2, 2, 4], yelEarTail); // Δεξί Αυτί
+
+    // 5. Ουρά (Tail): Πλάτος=2, Μήκος=2, Ύψος=4. Στο πίσω-πάνω μέρος του κορμού
+    drawComponent([0, -6, 14], [2, 2, 4], yelEarTail);
+
+    // 6. Πατούσες (Paws): Πλάτος=3, Μήκος=5, Ύψος=2. Πατάνε στο έδαφος (z=0 έως z=2)
+    drawComponent([-4.5, -5.5, 1], [3, 5, 2], yelPaw); // Πίσω Αριστερή
+    drawComponent([ 4.5, -5.5, 1], [3, 5, 2], yelPaw); // Πίσω Δεξιά
+    drawComponent([-4.5,  5.5, 1], [3, 5, 2], yelPaw); // Μπροστά Αριστερή
+    drawComponent([ 4.5,  5.5, 1], [3, 5, 2], yelPaw); // Μπροστά Δεξιά
+
+    // 7. Πόδια (Legs): Πλάτος=2, Μήκος=3, Ύψος=4. Συνδέουν τις πατούσες με τον κορμό (z=2 έως z=6)
+    drawComponent([-4.5, -5.5, 4], [2, 3, 4], yelLimb); // Πίσω Αριστερό Πόδι
+    drawComponent([ 4.5, -5.5, 4], [2, 3, 4], yelLimb); // Πίσω Δεξί Πόδι
+    drawComponent([-4.5,  5.5, 4], [2, 3, 4], yelLimb); // Μπροστά Αριστερό Πόδι
+    drawComponent([ 4.5,  5.5, 4], [2, 3, 4], yelLimb); // Μπροστά Δεξί Πόδι
 }
