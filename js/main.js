@@ -17,6 +17,14 @@ let animAngle = 0.0;
 let animHeight = 2.0; 
 let animHeightStep = 0.05; 
 let animationRequestId; 
+let mouseDown = false;
+let lastMouseX = null;
+let lastMouseY = null;
+let useMouseControl = false;
+let wheelTail = 0;
+let wheelHead = 0;
+let wheelRBLeg = 0;
+let wheelLBLeg = 0;
 
 function main() {     
     const canvas = document.getElementById("glcanvas");     
@@ -46,6 +54,9 @@ function main() {
         isAnimating = false; cancelAnimationFrame(animationRequestId);     
     }); 
     document.getElementById("redrawBtnBottom").addEventListener("click", drawScene);
+    canvas.onmousedown = handleMouseDown;
+    document.onmouseup = handleMouseUp;
+    document.onmousemove = handleMouseMove;
 }
 
 function loadTexture(gl, url) {     
@@ -118,8 +129,8 @@ const skyTextureCoords = [
 ];
 
 const floorTextureCoords = [
-    0.0, 1.0,   1.0, 1.0,   1.0, 0.0,   0.0, 0.0,
-    0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,
+    0.0, 1.0,  1.0, 1.0,  1.0, 0.0,  0.0, 0.0,
+    1.0, 1.0,  1.0, 0.0,  0.0, 0.0,  0.0, 1.0,
     0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,
     0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,
     0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,
@@ -236,7 +247,7 @@ function drawScene() {
     let d = parseFloat(document.getElementById("camOrthoDistance").value) || 35;     
     let camPos = [d, d, d];      
     
-    if (isAnimating) {         
+    if (isAnimating || useMouseControl) {         
         camPos[0] = d * Math.cos(animAngle);          
         camPos[1] = d * Math.sin(animAngle);          
         camPos[2] = animHeight;     
@@ -279,4 +290,34 @@ function drawScene() {
     drawComponent([ 4.5, -5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
     drawComponent([-4.5,  5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
     drawComponent([ 4.5,  5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer);  
+}
+
+function handleMouseDown(event) {
+    mouseDown = true;
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+    useMouseControl = true;
+}
+
+function handleMouseUp(event) {
+    mouseDown = false;
+}
+
+function handleMouseMove(event) {
+    if (!mouseDown) {
+        return;
+    }
+    
+    let newX = event.clientX;
+    let newY = event.clientY;
+
+    let deltaX = newX - lastMouseX;
+    let deltaY = newY - lastMouseY;
+    animAngle -= deltaX / 100.0;
+    animHeight += deltaY / 50.0;
+
+    lastMouseX = newX;
+    lastMouseY = newY;
+
+    drawScene();
 }
