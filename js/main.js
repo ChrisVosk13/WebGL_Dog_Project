@@ -83,14 +83,30 @@ const bodyTextureCoords = [
     0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0  
 ];
 
+// Mapper 2: Slices a portrait photo into thirds for the head requirements
 const headTextureCoords = [
-    0.0, 0.33,  1.0, 0.33,  1.0, 0.66,  0.0, 0.66,
+    
+// Left-X, Bottom-Y  |  Right-X, Bottom-Y  |  Right-X, Top-Y  |  Left-X, Top-Y
+
+    // 0: Top Face 
+    0.0, 0.9,  1.0, 0.9,  1.0, 0.66,  0.0, 0.66,
+
+    // 1: Bottom Face 
+    0.5, 0.2,   0.0, 0.2,   0.0, 0.9,   0.1, 0.9,
+
+    // 2: Front Face 
+    1.0, 1.0,   1.0, 0.66,  1.0, 1.66,  1.0, 1.66,
+
+    // 3: Back Face 
+    1.0, 0.0,   1.0, 0.0,   1.0, 0.33,  1.0, 0.33,
+    
+    // 4: Right Face (Side Head Fur -> Solid color patch)
     0.8, 0.2,   0.9, 0.2,   0.9, 0.3,   0.8, 0.3,
-    0.0, 1.0,   0.0, 0.66,  1.0, 0.66,  1.0, 1.0,
-    0.0, 0.0,   1.0, 0.0,   1.0, 0.33,  0.0, 0.33,
-    0.8, 0.2,   0.9, 0.2,   0.9, 0.3,   0.8, 0.3,
+
+    // 5: Left Face (Side Head Fur -> Solid color patch)
     0.8, 0.2,   0.9, 0.2,   0.9, 0.3,   0.8, 0.3
 ];
+
 
 const skyTextureCoords = [
     0.0, 0.0,  1.0, 0.0,  1.0, 1.0,  0.0, 1.0,
@@ -251,9 +267,9 @@ function drawScene() {
 
     drawComponent([0, 0, 9], [8, 14, 6], bodyTexture, bodyVertexTextureCoordBuffer);      
     drawComponent([0, 5, 13.5], [2, 2, 3], bodyTexture, bodyVertexTextureCoordBuffer);           
-    drawComponent([0, 4, 17], [6, 8, 4], headTexture, headVertexTextureCoordBuffer);      
-    drawComponent([-4, 2, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([ 4, 2, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
+    drawComponent([0, 7, 17], [6, 8, 4], headTexture, headVertexTextureCoordBuffer);      
+    drawComponent([-4, 5, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
+    drawComponent([ 4, 5, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
     drawComponent([0, -6, 14], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
     drawComponent([-4.5, -5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer);      
     drawComponent([ 4.5, -5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer);      
