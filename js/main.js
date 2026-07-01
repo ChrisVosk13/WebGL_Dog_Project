@@ -360,15 +360,65 @@ function drawScene() {
         mat4.translate(mvMatrix, mvMatrix, [0, 5.5 + h_dy, -pawZ]);
     }
 
+    // Κορμός
     drawComponent([0, 0, 9 + h_dz], [8, 14 * houndScaleY, 6], bodyTexture, bodyVertexTextureCoordBuffer); 
 
+    // Ουρά
     drawComponent([0, -6 - h_dy, 14 + h_dz], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, tailAngle, [1, 0, 0], [0, -7 - h_dy, 12 + h_dz]); 
 
-    drawComponent([0, 5 + h_dy, 13.5 + h_dz], [2, 2, 3], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5 + h_dy, 12 + h_dz]); 
-    drawComponent([0, 7 + h_dy, 17 + h_dz], [6, 8, 4], headTexture, headVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5 + h_dy, 12 + h_dz]); 
-    drawComponent([-4, 5 + h_dy, 17 + h_dz], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5 + h_dy, 12 + h_dz]); 
-    drawComponent([ 4, 5 + h_dy, 17 + h_dz], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5 + h_dy, 12 + h_dz]); 
+    // --- ΒΗΜΑ 12: EASTER EGG (Λαγωνικό > 5 Κύκλοι) ---
+    let houndCycles = animHound / (2 * Math.PI);
+    let headScale = 1.0;
+    let earScale = 1.0;
+    let earRotLeft = 0.0;
+    let earRotRight = 0.0;
 
+    if (houndCycles > 5.0) {
+        let excess = houndCycles - 5.0;
+        headScale = 1.0 + Math.min(2.0, excess * 2.0); 
+        
+        if (headScale >= 3.0) {
+            let earExcess = excess - 1.0; 
+            earScale = 1.0 + Math.min(2.0, earExcess * 2.0);
+            
+            if (earScale >= 3.0) {
+                let spinExcess = earExcess - 1.0;
+                let spinAngle = spinExcess * 360; 
+                earRotLeft = spinAngle;
+                earRotRight = -spinAngle;
+            }
+        }
+    }
+
+    let newHeadY = 5 + 2 * headScale + h_dy;
+    let newHeadZ = 15 + 2 * headScale + h_dz;
+
+    let leftEarX = -(3 * headScale) - (1 * earScale);
+    let rightEarX = (3 * headScale) + (1 * earScale);
+    let earY = 5 + h_dy;
+    let earZ = 15 + 4 * headScale - 2 * earScale + h_dz;
+
+    let leftEarPivot = [ -(3 * headScale), 5 + h_dy + (1 * earScale), 15 + 4 * headScale + h_dz ];
+    let rightEarPivot = [ (3 * headScale), 5 + h_dy + (1 * earScale), 15 + 4 * headScale + h_dz ];
+
+    let headPivot = [0, 5 + h_dy, 12 + h_dz];
+    
+    mat4.translate(mvMatrix, mvMatrix, headPivot);
+    mat4.rotate(mvMatrix, mvMatrix, headAngle * Math.PI / 180, [0, 0, 1]);
+    mat4.translate(mvMatrix, mvMatrix, [-headPivot[0], -headPivot[1], -headPivot[2]]);
+
+    // Λαιμός, Κεφάλι, Αυτιά
+    drawComponent([0, 5 + h_dy, 13.5 + h_dz], [2, 2, 3], bodyTexture, bodyVertexTextureCoordBuffer); 
+    drawComponent([0, newHeadY, newHeadZ], [6 * headScale, 8 * headScale, 4 * headScale], headTexture, headVertexTextureCoordBuffer); 
+    drawComponent([leftEarX, earY, earZ], [2 * earScale, 2 * earScale, 4 * earScale], bodyTexture, bodyVertexTextureCoordBuffer, earRotLeft, [1, 0, 0], leftEarPivot); 
+    drawComponent([rightEarX, earY, earZ], [2 * earScale, 2 * earScale, 4 * earScale], bodyTexture, bodyVertexTextureCoordBuffer, earRotRight, [1, 0, 0], rightEarPivot); 
+
+    mat4.translate(mvMatrix, mvMatrix, headPivot);
+    mat4.rotate(mvMatrix, mvMatrix, -headAngle * Math.PI / 180, [0, 0, 1]);
+    mat4.translate(mvMatrix, mvMatrix, [-headPivot[0], -headPivot[1], -headPivot[2]]);
+    // ------------------------------------------------
+
+    // Εμπρός Πόδια
     drawComponent([-4.5, 5.5 + h_dy, 2 + 2*houndScaleZ], [2, 3, 4 * houndScaleZ], bodyTexture, bodyVertexTextureCoordBuffer, fl_angle, [1, 0, 0], [-4.5, 5.5 + h_dy, pawZ]); 
     drawComponent([-4.5, 5.5 + h_dy, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer, fl_angle, [1, 0, 0], [-4.5, 5.5 + h_dy, pawZ]); 
     drawComponent([ 4.5, 5.5 + h_dy, 2 + 2*houndScaleZ], [2, 3, 4 * houndScaleZ], bodyTexture, bodyVertexTextureCoordBuffer, fr_angle, [1, 0, 0], [ 4.5, 5.5 + h_dy, pawZ]); 
