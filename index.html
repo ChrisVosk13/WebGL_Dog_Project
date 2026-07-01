@@ -30,7 +30,7 @@
         
         <canvas id="glcanvas" width="800" height="600" style="border: 2px solid white;"></canvas>
 
-        <div id="ui-controls" style="background: #e0e0e0; color: #000; padding: 20px; border-radius: 8px; font-family: sans-serif; min-width: 250px;">
+       <div id="ui-controls" style="background: #e0e0e0; color: #000; padding: 20px; border-radius: 8px; font-family: sans-serif; min-width: 250px;">
             <h3>Camera Controls</h3>
             
             <label for="viewAngle">View Angle (degrees):</label><br>
@@ -38,12 +38,6 @@
 
             <label for="camOrthoDistance">Camera Distance:</label><br>
             <input type="text" id="camOrthoDistance" value="9" style="margin-bottom: 15px;"><br>
-
-            <button id="redrawBtn" style="padding: 10px 20px; font-weight: bold; cursor: pointer; margin-bottom: 10px; width: 100%;">Redraw Scene</button>
-            
-            <hr style="margin: 15px 0;">
-            <button id="startAnimBtn" style="padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; width: 48%;">Start Orbit</button>
-            <button id="stopAnimBtn" style="padding: 10px; background-color: #f44336; color: white; border: none; cursor: pointer; width: 48%;">Stop Orbit</button>
 
             <fieldset style="margin-bottom: 15px;">
                 <legend>Camera Position (x, y, z):</legend>
@@ -57,7 +51,8 @@
                 <input type="radio" name="camPos" id="RBB" value="RBB"> <label for="RBB">Right-Back-Bottom</label><br>
             </fieldset>
 
-            <hr style="margin: 15px 0;">
+            <button id="redrawBtn" style="padding: 10px 20px; font-weight: bold; cursor: pointer; margin-bottom: 15px; width: 100%;">Redraw Scene</button>
+            
             <fieldset style="margin-bottom: 15px;">
                 <legend>Κίνηση (Ροδέλα Ποντικιού):</legend>
                 <input type="radio" name="wheelAnim" id="animPartTail" value="Tail" checked> <label for="animPartTail">Ουρά</label><br>
@@ -71,7 +66,11 @@
                 <input type="radio" name="wheelAnim" id="animReverse" value="Reverse"> <label for="animReverse">Όπισθεν</label><br>
             </fieldset>
 
-            <button id="redrawBtnBottom" style="padding: 10px 20px; font-weight: bold; cursor: pointer;">Redraw Scene</button>
+            <hr style="margin: 15px 0;">
+            <div style="display: flex; justify-content: space-between; gap: 4%;">
+                <button id="startAnimBtn" style="padding: 10px; background-color: #4CAF50; color: white; border: none; cursor: pointer; width: 48%;">Start Orbit</button>
+                <button id="stopAnimBtn" style="padding: 10px; background-color: #f44336; color: white; border: none; cursor: pointer; width: 48%;">Stop Orbit</button>
+            </div>
         </div>
     </div>
 
