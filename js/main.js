@@ -57,6 +57,18 @@ function main() {
     canvas.onmousedown = handleMouseDown;
     document.onmouseup = handleMouseUp;
     document.onmousemove = handleMouseMove;
+
+    canvas.addEventListener('wheel', function(event) {
+        event.preventDefault();
+        let delta = event.deltaY > 0 ? 0.05 : -0.05; 
+        
+        if (document.getElementById("animPartTail").checked) wheelTail += delta;
+        else if (document.getElementById("animPartHead").checked) wheelHead += delta;
+        else if (document.getElementById("animPartRBLeg").checked) wheelRBLeg += delta;
+        else if (document.getElementById("animPartLBLeg").checked) wheelLBLeg += delta;
+
+        if (!isAnimating) drawScene(); 
+    }, { passive: false });
 }
 
 function loadTexture(gl, url) {     
@@ -209,22 +221,31 @@ function initBuffers() {
     cubeVertexIndexBuffer.numItems = 36; 
 }
 
-function drawComponent(translation, scale, texture, coordBuffer) {     
-    const mat4 = window.mat4 || glMatrix.mat4;          
-    let localMV = mat4.create();     
-    mat4.copy(localMV, mvMatrix);     
-    mat4.translate(localMV, localMV, translation);     
-    mat4.scale(localMV, localMV, scale);           
-    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, localMV);     
+function drawComponent(translation, scale, texture, coordBuffer, rotAngle = 0, rotAxis = [1, 0, 0], pivot = [0, 0, 0]) {
+    const mat4 = window.mat4 || glMatrix.mat4;
+    let localMV = mat4.create();
+    mat4.copy(localMV, mvMatrix);
+
+    if (rotAngle !== 0) {
+        // Μεταφορά στο σημείο περιστροφής (pivot)
+        mat4.translate(localMV, localMV, pivot);
+        // Περιστροφή γύρω από τον επιλεγμένο άξονα
+        mat4.rotate(localMV, localMV, rotAngle * Math.PI / 180, rotAxis);
+        // Επιστροφή από το pivot
+        mat4.translate(localMV, localMV, [-pivot[0], -pivot[1], -pivot[2]]);
+    }
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, coordBuffer);     
-    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, 2, gl.FLOAT, false, 0, 0);     
+    // Τοποθέτηση και κλιμάκωση του κομματιού
+    mat4.translate(localMV, localMV, translation);
+    mat4.scale(localMV, localMV, scale);
     
-    gl.activeTexture(gl.TEXTURE0);     
-    gl.bindTexture(gl.TEXTURE_2D, texture);     
-    gl.uniform1i(shaderProgram.samplerUniform, 0);          
-    
-    gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0); 
+    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, localMV);
+    gl.bindBuffer(gl.ARRAY_BUFFER, coordBuffer);
+    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, 2, gl.FLOAT, false, 0, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(shaderProgram.samplerUniform, 0);
+    gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
 function animateScene() {     
@@ -272,24 +293,39 @@ function drawScene() {
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);     
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);     
     
-    drawComponent([0, 0, 0], [2000, 2000, 2000], skyTexture, bodyVertexTextureCoordBuffer);
-    
-    drawComponent([0, 0, -0.1], [60, 60, 0.2], floorTexture, bodyVertexTextureCoordBuffer);
+    // Υπολογισμός Γωνιών Περιστροφής με ημίτονο/συνημίτονο για την "ταλάντωση"
+    let tailAngle = 45 * Math.sin(wheelTail) + 45; // 0 έως 90 μοίρες (πάνω κατακόρυφα -> κάτω)
+    let headAngle = 90 * Math.sin(wheelHead);      // -90 έως +90 μοίρες (σύνολο 180 δεξιά-αριστερά)
+    let rbLegAngle = 90 * Math.sin(wheelRBLeg);    // -90 έως +90 μοίρες (σύνολο 180 εμπρός-πίσω)
+    let lbLegAngle = 90 * Math.sin(wheelLBLeg);    // -90 έως +90 μοίρες (σύνολο 180 εμπρός-πίσω)
 
-    drawComponent([0, 0, 9], [8, 14, 6], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([0, 5, 13.5], [2, 2, 3], bodyTexture, bodyVertexTextureCoordBuffer);           
-    drawComponent([0, 7, 17], [6, 8, 4], headTexture, headVertexTextureCoordBuffer);      
-    drawComponent([-4, 5, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([ 4, 5, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([0, -6, 14], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([-4.5, -5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([ 4.5, -5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([-4.5,  5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([ 4.5,  5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([-4.5, -5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([ 4.5, -5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([-4.5,  5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer);      
-    drawComponent([ 4.5,  5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer);  
+    // (Τα στατικά αντικείμενα μένουν όπως είναι)
+    drawComponent([0, 0, 0], [2000, 2000, 2000], skyTexture, bodyVertexTextureCoordBuffer);
+    drawComponent([0, 0, -0.1], [60, 60, 0.2], floorTexture, bodyVertexTextureCoordBuffer);
+    drawComponent([0, 0, 9], [8, 14, 6], bodyTexture, bodyVertexTextureCoordBuffer); // Κορμός
+
+    // --- Κεφάλι, Λαιμός και Αυτιά (Άξονας Z, Pivot: Κέντρο βάσης λαιμού [0, 5, 12]) ---
+    drawComponent([0, 5, 13.5], [2, 2, 3], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5, 12]); 
+    drawComponent([0, 7, 17], [6, 8, 4], headTexture, headVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5, 12]); 
+    drawComponent([-4, 5, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5, 12]); 
+    drawComponent([ 4, 5, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5, 12]); 
+
+    // --- Ουρά (Άξονας X, Pivot: Πίσω ακμή βάσης [0, -7, 12]) ---
+    drawComponent([0, -6, 14], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, tailAngle, [1, 0, 0], [0, -7, 12]);
+
+    // --- Αριστερό Πίσω Πόδι & Πατούσα (Άξονας X, Pivot: Μέσο πάνω όψης [-4.5, -5.5, 6]) ---
+    drawComponent([-4.5, -5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer, lbLegAngle, [1, 0, 0], [-4.5, -5.5, 6]); 
+    drawComponent([-4.5, -5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer, lbLegAngle, [1, 0, 0], [-4.5, -5.5, 6]); 
+
+    // --- Δεξί Πίσω Πόδι & Πατούσα (Άξονας X, Pivot: Μέσο πάνω όψης [4.5, -5.5, 6]) ---
+    drawComponent([ 4.5, -5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer, rbLegAngle, [1, 0, 0], [4.5, -5.5, 6]); 
+    drawComponent([ 4.5, -5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer, rbLegAngle, [1, 0, 0], [4.5, -5.5, 6]); 
+
+    // --- Μπροστινά Πόδια (Σταθερά σε αυτό το βήμα) ---
+    drawComponent([-4.5,  5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer); 
+    drawComponent([-4.5,  5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer); 
+    drawComponent([ 4.5,  5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer); 
+    drawComponent([ 4.5,  5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer);  
 }
 
 function handleMouseDown(event) {
