@@ -19,7 +19,7 @@
         }
 
         #ui-controls {
-            margin-top: 20px;
+            margin-top: -80px;
         }
     </style>
 </head>
@@ -64,6 +64,11 @@
                 <input type="radio" name="wheelAnim" id="animPartHead" value="Head"> <label for="animPartHead">Κεφάλι</label><br>
                 <input type="radio" name="wheelAnim" id="animPartRBLeg" value="RBLeg"> <label for="animPartRBLeg">Σκάψιμο - Δεξί πίσω πόδι</label><br>
                 <input type="radio" name="wheelAnim" id="animPartLBLeg" value="LBLeg"> <label for="animPartLBLeg">Σκάψιμο - Αριστερό πίσω πόδι</label><br>
+                <hr style="margin: 10px 0;">
+                <input type="radio" name="wheelAnim" id="animPlayDead" value="PlayDead"> <label for="animPlayDead">Play dead</label><br>
+                <input type="radio" name="wheelAnim" id="animSouza" value="Souza"> <label for="animSouza">Σούζα</label><br>
+                <input type="radio" name="wheelAnim" id="animHound" value="Hound"> <label for="animHound">Λαγωνικό</label><br>
+                <input type="radio" name="wheelAnim" id="animReverse" value="Reverse"> <label for="animReverse">Όπισθεν</label><br>
             </fieldset>
 
             <button id="redrawBtnBottom" style="padding: 10px 20px; font-weight: bold; cursor: pointer;">Redraw Scene</button>

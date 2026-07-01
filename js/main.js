@@ -25,6 +25,11 @@ let wheelTail = 0;
 let wheelHead = 0;
 let wheelRBLeg = 0;
 let wheelLBLeg = 0;
+let animPlayDead = 0;
+let animSouza = 0;
+let animHound = 0;
+let animReverse = 0;
+let distReverse = 0;
 
 function main() {     
     const canvas = document.getElementById("glcanvas");     
@@ -60,12 +65,20 @@ function main() {
 
     canvas.addEventListener('wheel', function(event) {
         event.preventDefault();
-        let delta = event.deltaY > 0 ? 0.05 : -0.05; 
-        
+        let delta = event.deltaY > 0 ? 0.05 : -0.05;
+        let absDelta = Math.abs(delta); // Η κίνηση ανακυκλώνεται ανεξαρτήτως φοράς της ροδέλας
+
         if (document.getElementById("animPartTail").checked) wheelTail += delta;
         else if (document.getElementById("animPartHead").checked) wheelHead += delta;
         else if (document.getElementById("animPartRBLeg").checked) wheelRBLeg += delta;
         else if (document.getElementById("animPartLBLeg").checked) wheelLBLeg += delta;
+        else if (document.getElementById("animPlayDead").checked) animPlayDead += absDelta;
+        else if (document.getElementById("animSouza").checked) animSouza += absDelta;
+        else if (document.getElementById("animHound").checked) animHound += absDelta;
+        else if (document.getElementById("animReverse").checked) {
+            animReverse += absDelta;
+            distReverse -= absDelta; // Μετακινείται συνεχώς προς τα πίσω (-y)
+        }
 
         if (!isAnimating) drawScene(); 
     }, { passive: false });
@@ -248,15 +261,25 @@ function drawComponent(translation, scale, texture, coordBuffer, rotAngle = 0, r
     gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 }
 
-function animateScene() {     
-    if (!isAnimating) return;     
-    animAngle += 0.02;     
-    animHeight += animHeightStep;     
-    if (animHeight > 15.0 || animHeight < 2.0) {         
-        animHeightStep = -animHeightStep;     
-    }     
-    drawScene();     
-    animationRequestId = requestAnimationFrame(animateScene); 
+function animateScene() {
+    if (!isAnimating) return;
+    animAngle += 0.02;
+    animHeight += animHeightStep;
+    if (animHeight > 15.0 || animHeight < 2.0) {
+        animHeightStep = -animHeightStep;
+    }
+
+    // Προώθηση των νέων animations αυτόματα
+    if (document.getElementById("animPlayDead").checked) animPlayDead += 0.05;
+    if (document.getElementById("animSouza").checked) animSouza += 0.05;
+    if (document.getElementById("animHound").checked) animHound += 0.05;
+    if (document.getElementById("animReverse").checked) {
+        animReverse += 0.05;
+        distReverse -= 0.05;
+    }
+
+    drawScene();
+    animationRequestId = requestAnimationFrame(animateScene);
 }
 
 function drawScene() {     
@@ -293,39 +316,89 @@ function drawScene() {
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);     
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);     
     
-    // Υπολογισμός Γωνιών Περιστροφής με ημίτονο/συνημίτονο για την "ταλάντωση"
-    let tailAngle = 45 * Math.sin(wheelTail) + 45; // 0 έως 90 μοίρες (πάνω κατακόρυφα -> κάτω)
-    let headAngle = 90 * Math.sin(wheelHead);      // -90 έως +90 μοίρες (σύνολο 180 δεξιά-αριστερά)
-    let rbLegAngle = 90 * Math.sin(wheelRBLeg);    // -90 έως +90 μοίρες (σύνολο 180 εμπρός-πίσω)
-    let lbLegAngle = 90 * Math.sin(wheelLBLeg);    // -90 έως +90 μοίρες (σύνολο 180 εμπρός-πίσω)
+    // --- Υπολογισμοί Βήματος 10 ---
+    let tailAngle = 45 * Math.sin(wheelTail) + 45; 
+    let headAngle = 90 * Math.sin(wheelHead);      
+    let rbLegAngle = 90 * Math.sin(wheelRBLeg);    
+    let lbLegAngle = 90 * Math.sin(wheelLBLeg);    
 
-    // (Τα στατικά αντικείμενα μένουν όπως είναι)
+    // --- Υπολογισμοί Βήματος 11 ---
+    let playDeadAngle = 45 - 45 * Math.cos(animPlayDead);   // 0 έως 90 μοίρες
+    let souzaAngle = 45 - 45 * Math.cos(animSouza);         // 0 έως 90 μοίρες
+    let houndScaleY = 1.0 + 0.5 * (1 - Math.cos(animHound));// Κλίμακα κορμού 1 έως 2
+    let houndScaleZ = 1.0 + 0.5 * (1 - Math.cos(animHound));// Κλίμακα ποδιών 1 έως 2
+    
+    // Όπισθεν: Διαγώνιος Συγχρονισμός Ποδιών
+    let revLeg1 = 45 * Math.sin(animReverse);  // Εμπρός-Αριστερά & Πίσω-Δεξιά
+    let revLeg2 = -45 * Math.sin(animReverse); // Εμπρός-Δεξιά & Πίσω-Αριστερά
+
+    // Λαγωνικό: offsets για να μείνουν ενωμένα τα μέλη
+    let h_dz = 4 * (houndScaleZ - 1);       // Πόσο ψήλωσε ο κορμός λόγω ποδιών
+    let h_dy = 14 * (houndScaleY - 1) / 2;  // Πόσο πήγε μπρος-πίσω ο κορμός
+
+    // Γωνίες για τα μπροστινά πόδια (Μόνο από την όπισθεν)
+    let fl_angle = (document.getElementById("animReverse").checked || isAnimating) ? revLeg1 : 0;
+    let fr_angle = (document.getElementById("animReverse").checked || isAnimating) ? revLeg2 : 0;
+    
+    // Ενσωμάτωση όπισθεν στα πίσω πόδια
+    if (document.getElementById("animReverse").checked || isAnimating) {
+        lbLegAngle += revLeg2;
+        rbLegAngle += revLeg1;
+    }
+
+    // 1. Σχεδίαση Στατικών Στοιχείων (Ουρανός, Έδαφος)
     drawComponent([0, 0, 0], [2000, 2000, 2000], skyTexture, bodyVertexTextureCoordBuffer);
     drawComponent([0, 0, -0.1], [60, 60, 0.2], floorTexture, bodyVertexTextureCoordBuffer);
-    drawComponent([0, 0, 9], [8, 14, 6], bodyTexture, bodyVertexTextureCoordBuffer); // Κορμός
 
-    // --- Κεφάλι, Λαιμός και Αυτιά (Άξονας Z, Pivot: Κέντρο βάσης λαιμού [0, 5, 12]) ---
-    drawComponent([0, 5, 13.5], [2, 2, 3], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5, 12]); 
-    drawComponent([0, 7, 17], [6, 8, 4], headTexture, headVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5, 12]); 
-    drawComponent([-4, 5, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5, 12]); 
-    drawComponent([ 4, 5, 17], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5, 12]); 
+    // Αποθήκευση της αρχικής κάμερας
+    let originalMV = mat4.create();
+    mat4.copy(originalMV, mvMatrix);
 
-    // --- Ουρά (Άξονας X, Pivot: Πίσω ακμή βάσης [0, -7, 12]) ---
-    drawComponent([0, -6, 14], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, tailAngle, [1, 0, 0], [0, -7, 12]);
+    // 2. Global Μετασχηματισμοί Ολόκληρου του Σκύλου (Όπισθεν & Play Dead)
+    mat4.translate(mvMatrix, mvMatrix, [0, distReverse, 0]); // Όπισθεν
 
-    // --- Αριστερό Πίσω Πόδι & Πατούσα (Άξονας X, Pivot: Μέσο πάνω όψης [-4.5, -5.5, 6]) ---
-    drawComponent([-4.5, -5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer, lbLegAngle, [1, 0, 0], [-4.5, -5.5, 6]); 
-    drawComponent([-4.5, -5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer, lbLegAngle, [1, 0, 0], [-4.5, -5.5, 6]); 
+    if (playDeadAngle !== 0) {
+        // Pivot: Αριστερή άκρη των πατουσών [X=-6, Z=0]
+        mat4.translate(mvMatrix, mvMatrix, [-6, 0, 0]);
+        mat4.rotate(mvMatrix, mvMatrix, playDeadAngle * Math.PI / 180, [0, 1, 0]);
+        mat4.translate(mvMatrix, mvMatrix, [6, 0, 0]);
+    }
 
-    // --- Δεξί Πίσω Πόδι & Πατούσα (Άξονας X, Pivot: Μέσο πάνω όψης [4.5, -5.5, 6]) ---
-    drawComponent([ 4.5, -5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer, rbLegAngle, [1, 0, 0], [4.5, -5.5, 6]); 
-    drawComponent([ 4.5, -5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer, rbLegAngle, [1, 0, 0], [4.5, -5.5, 6]); 
+    // 3. Σχεδίαση Πίσω Ποδιών (Επηρεάζονται από Όπισθεν, Play Dead, Λαγωνικό, αλλά ΟΧΙ από Σούζα)
+    let pawZ = 2 + 4 * houndScaleZ; // Ο άξονας Z της άρθρωσης των ποδιών
 
-    // --- Μπροστινά Πόδια (Σταθερά σε αυτό το βήμα) ---
-    drawComponent([-4.5,  5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer); 
-    drawComponent([-4.5,  5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer); 
-    drawComponent([ 4.5,  5.5, 4], [2, 3, 4], bodyTexture, bodyVertexTextureCoordBuffer); 
-    drawComponent([ 4.5,  5.5, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer);  
+    drawComponent([-4.5, -5.5 - h_dy, 2 + 2*houndScaleZ], [2, 3, 4 * houndScaleZ], bodyTexture, bodyVertexTextureCoordBuffer, lbLegAngle, [1, 0, 0], [-4.5, -5.5 - h_dy, pawZ]); 
+    drawComponent([-4.5, -5.5 - h_dy, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer, lbLegAngle, [1, 0, 0], [-4.5, -5.5 - h_dy, pawZ]); 
+    drawComponent([ 4.5, -5.5 - h_dy, 2 + 2*houndScaleZ], [2, 3, 4 * houndScaleZ], bodyTexture, bodyVertexTextureCoordBuffer, rbLegAngle, [1, 0, 0], [ 4.5, -5.5 - h_dy, pawZ]); 
+    drawComponent([ 4.5, -5.5 - h_dy, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer, rbLegAngle, [1, 0, 0], [ 4.5, -5.5 - h_dy, pawZ]); 
+
+    // 4. Μετασχηματισμός Σούζας (Αφορά τον κορμό και τα εμπρός μέλη)
+    if (souzaAngle !== 0) {
+        // Pivot: Η άρθρωση των πίσω ποδιών
+        mat4.translate(mvMatrix, mvMatrix, [0, -5.5 - h_dy, pawZ]);
+        mat4.rotate(mvMatrix, mvMatrix, souzaAngle * Math.PI / 180, [1, 0, 0]);
+        mat4.translate(mvMatrix, mvMatrix, [0, 5.5 + h_dy, -pawZ]);
+    }
+
+    // 5. Σχεδίαση του υπόλοιπου σκύλου
+    drawComponent([0, 0, 9 + h_dz], [8, 14 * houndScaleY, 6], bodyTexture, bodyVertexTextureCoordBuffer); // Κορμός
+
+    drawComponent([0, -6 - h_dy, 14 + h_dz], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, tailAngle, [1, 0, 0], [0, -7 - h_dy, 12 + h_dz]); // Ουρά
+
+    // Κεφάλι
+    drawComponent([0, 5 + h_dy, 13.5 + h_dz], [2, 2, 3], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5 + h_dy, 12 + h_dz]); 
+    drawComponent([0, 7 + h_dy, 17 + h_dz], [6, 8, 4], headTexture, headVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5 + h_dy, 12 + h_dz]); 
+    drawComponent([-4, 5 + h_dy, 17 + h_dz], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5 + h_dy, 12 + h_dz]); 
+    drawComponent([ 4, 5 + h_dy, 17 + h_dz], [2, 2, 4], bodyTexture, bodyVertexTextureCoordBuffer, headAngle, [0, 0, 1], [0, 5 + h_dy, 12 + h_dz]); 
+
+    // Εμπρός Πόδια
+    drawComponent([-4.5, 5.5 + h_dy, 2 + 2*houndScaleZ], [2, 3, 4 * houndScaleZ], bodyTexture, bodyVertexTextureCoordBuffer, fl_angle, [1, 0, 0], [-4.5, 5.5 + h_dy, pawZ]); 
+    drawComponent([-4.5, 5.5 + h_dy, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer, fl_angle, [1, 0, 0], [-4.5, 5.5 + h_dy, pawZ]); 
+    drawComponent([ 4.5, 5.5 + h_dy, 2 + 2*houndScaleZ], [2, 3, 4 * houndScaleZ], bodyTexture, bodyVertexTextureCoordBuffer, fr_angle, [1, 0, 0], [ 4.5, 5.5 + h_dy, pawZ]); 
+    drawComponent([ 4.5, 5.5 + h_dy, 1], [3, 5, 2], bodyTexture, bodyVertexTextureCoordBuffer, fr_angle, [1, 0, 0], [ 4.5, 5.5 + h_dy, pawZ]); 
+
+    // 6. Επαναφορά της κάμερας
+    mat4.copy(mvMatrix, originalMV);
 }
 
 function handleMouseDown(event) {
